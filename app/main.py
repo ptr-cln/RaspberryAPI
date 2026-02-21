@@ -9,13 +9,18 @@ from typing import List, Optional, Tuple
 
 import psutil
 from fastapi import FastAPI, HTTPException
+from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import PlainTextResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 LIKES_COUNT_PATH = Path("/home/pi/HevyBot/runtime/likes_count.txt")
 HEVYBOT_OUT_PATH = Path("/home/pi/HevyBot/runtime/hevybot.out")
+BASE_DIR = Path(__file__).resolve().parent.parent
+STATIC_DIR = BASE_DIR / "static"
 
 app = FastAPI(
+    docs_url=None,
     title="RaspberryPi API",
     description=(
         "API REST esposte dal Raspberry Pi. "
@@ -33,6 +38,7 @@ app = FastAPI(
         }
     ],
 )
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
 class CpuMetrics(BaseModel):
@@ -193,6 +199,15 @@ def _get_cpu_temperature_celsius() -> Tuple[Optional[float], Optional[str]]:
         pass
 
     return None, None
+
+
+@app.get("/docs", include_in_schema=False)
+def custom_swagger_docs():
+    return get_swagger_ui_html(
+        openapi_url=app.openapi_url,
+        title=f"{app.title} - Docs",
+        swagger_css_url="/static/swagger-theme.css",
+    )
 
 
 @app.get(
