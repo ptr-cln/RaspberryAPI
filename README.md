@@ -1,11 +1,21 @@
 # RaspberryAPI
 
 API REST in Python (FastAPI) da esporre su Raspberry Pi, con documentazione Swagger UI.
+Il progetto e' generico: puo' contenere endpoint di servizi diversi.
 
-## Endpoint disponibili
+## Endpoint disponibili (modulo HevyBot)
 
 - `GET /runtime/likes-count` -> contenuto di `/home/pi/HevyBot/runtime/likes_count.txt`
 - `GET /runtime/hevybot-out` -> contenuto di `/home/pi/HevyBot/runtime/hevybot.out`
+
+## Endpoint disponibili (modulo System)
+
+- `GET /system/metrics` -> metriche live Raspberry Pi:
+  - percentuale CPU utilizzata
+  - percentuale RAM utilizzata
+  - percentuale disco utilizzata, spazio libero e totale
+  - temperatura CPU (quando disponibile)
+  - uptime, load average, frequenza CPU, indirizzi IPv4
 
 Swagger UI:
 
@@ -49,4 +59,5 @@ sudo journalctl -u raspberryapi.service -f
 ```bash
 curl http://127.0.0.1:8000/runtime/likes-count
 curl http://127.0.0.1:8000/runtime/hevybot-out
+curl http://127.0.0.1:8000/system/metrics
 ```
