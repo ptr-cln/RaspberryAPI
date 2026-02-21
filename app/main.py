@@ -5,15 +5,22 @@ import platform
 import re
 import socket
 import subprocess
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import psutil
-from fastapi import FastAPI, HTTPException
+from fastapi import Body, FastAPI, HTTPException
 from fastapi.responses import PlainTextResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 LIKES_COUNT_PATH = Path("/home/pi/HevyBot/runtime/likes_count.txt")
 HEVYBOT_OUT_PATH = Path("/home/pi/HevyBot/runtime/hevybot.out")
+START_HEVYBOT_SCRIPT_PATH = Path(
+    os.getenv("HEVYBOT_START_SCRIPT_PATH", "/home/pi/HevyBot/start_hevybot.sh")
+)
+STOP_HEVYBOT_SCRIPT_PATH = Path(
+    os.getenv("HEVYBOT_STOP_SCRIPT_PATH", "/home/pi/HevyBot/stop_hevybot.sh")
+)
+SCRIPT_RUNNER_PATH = os.getenv("SCRIPT_RUNNER_PATH", "/bin/bash")
 
 app = FastAPI(
     title="RaspberryPi API",
@@ -93,6 +100,103 @@ class SystemMetricsResponse(BaseModel):
     disk: DiskMetrics
     temperature: TemperatureMetrics
     network: NetworkMetrics
+
+
+class StartHevyBotRequest(BaseModel):
+    fast_mode: Optional[bool] = Field(
+        default=None,
+        alias="fast-mode",
+        description="Se true aggiunge il flag --fast-mode.",
+    )
+    execution_time_minutes: Optional[int] = Field(
+        default=None,
+        alias="execution-time-minutes",
+        ge=1,
+        description="Minuti di esecuzione (es. --execution-time-minutes 180).",
+    )
+    pause_time_minutes: Optional[int] = Field(
+        default=None,
+        alias="pause-time-minutes",
+        ge=1,
+        description="Pausa tra cicli in minuti (es. --pause-time-minutes 60).",
+    )
+    min_delay: Optional[float] = Field(
+        default=None,
+        alias="min-delay",
+        ge=0,
+        description="Delay minimo (es. --min-delay 1).",
+    )
+    max_delay: Optional[float] = Field(
+        default=None,
+        alias="max-delay",
+        ge=0,
+        description="Delay massimo (es. --max-delay 3).",
+    )
+    max_likes: Optional[int] = Field(
+        default=None,
+        alias="max-likes",
+        ge=1,
+        description="Numero massimo like (es. --max-likes 20000).",
+    )
+    long_pause_every_min_likes: Optional[int] = Field(
+        default=None,
+        alias="long-pause-every-min-likes",
+        ge=1,
+        description="Soglia minima like prima di long pause.",
+    )
+    long_pause_every_max_likes: Optional[int] = Field(
+        default=None,
+        alias="long-pause-every-max-likes",
+        ge=1,
+        description="Soglia massima like prima di long pause.",
+    )
+    long_pause_min_seconds: Optional[int] = Field(
+        default=None,
+        alias="long-pause-min-seconds",
+        ge=1,
+        description="Durata minima long pause in secondi.",
+    )
+    long_pause_max_seconds: Optional[int] = Field(
+        default=None,
+        alias="long-pause-max-seconds",
+        ge=1,
+        description="Durata massima long pause in secondi.",
+    )
+    args: List[str] = Field(
+        default_factory=list,
+        description="Argomenti raw aggiuntivi inseriti in coda.",
+    )
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        extra="allow",
+        json_schema_extra={
+            "example": {
+                "fast-mode": True,
+                "execution-time-minutes": 180,
+                "pause-time-minutes": 60,
+                "min-delay": 1,
+                "max-delay": 3,
+                "max-likes": 20000,
+                "long-pause-every-min-likes": 8,
+                "long-pause-every-max-likes": 14,
+                "long-pause-min-seconds": 30,
+                "long-pause-max-seconds": 90,
+            }
+        },
+    )
+
+
+class ScriptExecutionResponse(BaseModel):
+    command: List[str] = Field(..., description="Comando eseguito.")
+    exit_code: int = Field(..., description="Codice di uscita del processo.")
+    success: bool = Field(..., description="True se exit code e' 0.")
+    stdout: str = Field(..., description="Output standard del comando.")
+    stderr: str = Field(..., description="Output di errore del comando.")
+    combined_output: str = Field(
+        ...,
+        description="Output complessivo (stdout + stderr).",
+    )
 
 
 def _read_runtime_file(path: Path) -> str:
@@ -195,6 +299,110 @@ def _get_cpu_temperature_celsius() -> Tuple[Optional[float], Optional[str]]:
     return None, None
 
 
+def _run_script(script_path: Path, args: Optional[List[str]] = None) -> ScriptExecutionResponse:
+    if not script_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Script non trovato: {script_path}",
+        )
+
+    if not script_path.is_file():
+        raise HTTPException(
+            status_code=400,
+            detail=f"Il path non punta a uno script file: {script_path}",
+        )
+
+    command = [SCRIPT_RUNNER_PATH, str(script_path), *(args or [])]
+
+    try:
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            check=False,
+            cwd=str(script_path.parent),
+        )
+    except PermissionError as exc:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Permessi insufficienti per eseguire lo script: {script_path}",
+        ) from exc
+    except OSError as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Errore durante l'esecuzione dello script: {script_path}",
+        ) from exc
+
+    stdout = result.stdout or ""
+    stderr = result.stderr or ""
+
+    return ScriptExecutionResponse(
+        command=command,
+        exit_code=result.returncode,
+        success=result.returncode == 0,
+        stdout=stdout,
+        stderr=stderr,
+        combined_output=f"{stdout}{stderr}",
+    )
+
+
+def _build_script_args_from_payload(payload: Optional[Dict[str, Any]]) -> List[str]:
+    if not payload:
+        return []
+
+    args: List[str] = []
+
+    # Backward compatibility with previous format: {"args": ["--flag", "value"]}.
+    legacy_args = payload.get("args")
+    if isinstance(legacy_args, list):
+        args.extend(str(item) for item in legacy_args)
+
+    for key, value in payload.items():
+        if key == "args":
+            continue
+
+        flag_name = key.strip()
+        if not flag_name:
+            continue
+        if not flag_name.startswith("--"):
+            flag_name = f"--{flag_name.lstrip('-')}"
+
+        if value is None:
+            continue
+
+        if isinstance(value, bool):
+            if value:
+                args.append(flag_name)
+            continue
+
+        if isinstance(value, list):
+            for item in value:
+                if item is None:
+                    continue
+                args.extend([flag_name, str(item)])
+            continue
+
+        args.extend([flag_name, str(value)])
+
+    return args
+
+
+def _start_request_to_payload_dict(payload: Optional[StartHevyBotRequest]) -> Dict[str, Any]:
+    if payload is None:
+        return {}
+
+    payload_dict: Dict[str, Any] = payload.model_dump(
+        by_alias=True,
+        exclude_none=True,
+    )
+
+    extra_fields = getattr(payload, "model_extra", None) or {}
+    for key, value in extra_fields.items():
+        payload_dict[key] = value
+
+    return payload_dict
+
+
 @app.get(
     "/runtime/likes-count",
     response_class=PlainTextResponse,
@@ -213,6 +421,32 @@ def get_likes_count() -> str:
 )
 def get_hevybot_out() -> str:
     return _read_runtime_file(HEVYBOT_OUT_PATH)
+
+
+@app.post(
+    "/hevybot/stop",
+    response_model=ScriptExecutionResponse,
+    tags=["HevyBot"],
+    summary="Ferma HevyBot eseguendo stop_hevybot.sh",
+)
+def stop_hevybot() -> ScriptExecutionResponse:
+    return _run_script(STOP_HEVYBOT_SCRIPT_PATH)
+
+
+@app.post(
+    "/hevybot/start",
+    response_model=ScriptExecutionResponse,
+    tags=["HevyBot"],
+    summary="Avvia HevyBot eseguendo start_hevybot.sh",
+)
+def start_hevybot(
+    payload: Optional[StartHevyBotRequest] = Body(
+        default=None,
+    ),
+) -> ScriptExecutionResponse:
+    payload_dict = _start_request_to_payload_dict(payload)
+    args = _build_script_args_from_payload(payload_dict)
+    return _run_script(START_HEVYBOT_SCRIPT_PATH, args)
 
 
 @app.get(

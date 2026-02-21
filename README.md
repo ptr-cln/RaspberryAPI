@@ -9,6 +9,8 @@ L'obiettivo e' avere un singolo servizio API modulare: HevyBot e' solo un modulo
 
 - `GET /runtime/likes-count` -> contenuto di `/home/pi/HevyBot/runtime/likes_count.txt`
 - `GET /runtime/hevybot-out` -> contenuto di `/home/pi/HevyBot/runtime/hevybot.out`
+- `POST /hevybot/stop` -> esegue `stop_hevybot.sh` e restituisce output console
+- `POST /hevybot/start` -> esegue `start_hevybot.sh` con argomenti dal body e restituisce output console
 
 ### System (modulo generico)
 
@@ -69,4 +71,17 @@ sudo journalctl -u raspberryapi.service -f
 curl http://127.0.0.1:8000/runtime/likes-count
 curl http://127.0.0.1:8000/runtime/hevybot-out
 curl http://127.0.0.1:8000/system/metrics
+curl -X POST http://127.0.0.1:8000/hevybot/stop
+curl -X POST http://127.0.0.1:8000/hevybot/start \
+  -H "Content-Type: application/json" \
+  -d '{"fast-mode":true,"execution-time-minutes":180,"pause-time-minutes":60,"min-delay":1,"max-delay":3,"max-likes":20000,"long-pause-every-min-likes":8,"long-pause-every-max-likes":14,"long-pause-min-seconds":30,"long-pause-max-seconds":90}'
 ```
+
+### Nota su start/stop HevyBot
+
+- Gli endpoint sono `POST` perche' eseguono azioni con side-effect (avvio/arresto processo).
+- `POST /hevybot/start` accetta un body JSON key/value e lo converte in argomenti CLI.
+- Esempio completo: `{"fast-mode":true,"execution-time-minutes":180,"pause-time-minutes":60,"min-delay":1,"max-delay":3,"max-likes":20000,"long-pause-every-min-likes":8,"long-pause-every-max-likes":14,"long-pause-min-seconds":30,"long-pause-max-seconds":90}`.
+- In Swagger (`/docs`) trovi template tipizzato con campi noti: `fast-mode`, `execution-time-minutes`, `pause-time-minutes`, `min-delay`, `max-delay`, `max-likes`, `long-pause-every-min-likes`, `long-pause-every-max-likes`, `long-pause-min-seconds`, `long-pause-max-seconds`, `args`.
+- Supportato anche il formato legacy `{"args":["--flag","value"]}`.
+- Risposta per entrambi: `exit_code`, `success`, `stdout`, `stderr`, `combined_output`, `command`.
