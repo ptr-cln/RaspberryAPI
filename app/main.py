@@ -18,18 +18,18 @@ HEVYBOT_OUT_PATH = Path("/home/pi/HevyBot/runtime/hevybot.out")
 app = FastAPI(
     title="RaspberryPi API",
     description=(
-        "API REST esposte dal Raspberry Pi. "
-        "Alcuni endpoint sono specifici di servizi locali, come HevyBot."
+        "Piattaforma API REST generica per Raspberry Pi, organizzata per moduli. "
+        "HevyBot e' solo uno dei moduli applicativi disponibili."
     ),
     version="1.0.0",
     openapi_tags=[
         {
             "name": "HevyBot",
-            "description": "Endpoint specifici di HevyBot.",
+            "description": "Modulo applicativo HevyBot (specifico, non obbligatorio).",
         },
         {
             "name": "System",
-            "description": "Endpoint generici con metriche e stato Raspberry.",
+            "description": "Endpoint generici con metriche e stato del Raspberry.",
         }
     ],
 )

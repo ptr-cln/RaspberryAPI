@@ -1,14 +1,16 @@
 # RaspberryAPI
 
-API REST in Python (FastAPI) da esporre su Raspberry Pi, con documentazione Swagger UI.
-Il progetto e' generico: puo' contenere endpoint di servizi diversi.
+RaspberryAPI e' una piattaforma REST generica in Python (FastAPI) da esporre su Raspberry Pi, con documentazione Swagger UI.
+L'obiettivo e' avere un singolo servizio API modulare: HevyBot e' solo un modulo, non il focus esclusivo del progetto.
 
-## Endpoint disponibili (modulo HevyBot)
+## Moduli API attuali
+
+### HevyBot (modulo specifico)
 
 - `GET /runtime/likes-count` -> contenuto di `/home/pi/HevyBot/runtime/likes_count.txt`
 - `GET /runtime/hevybot-out` -> contenuto di `/home/pi/HevyBot/runtime/hevybot.out`
 
-## Endpoint disponibili (modulo System)
+### System (modulo generico)
 
 - `GET /system/metrics` -> metriche live Raspberry Pi:
   - percentuale CPU utilizzata
@@ -24,6 +26,13 @@ Swagger UI:
 OpenAPI JSON:
 
 - `http://<IP_RASPBERRY>:8000/openapi.json`
+
+## Come estendere con nuovi moduli
+
+- Aggiungi nuovi endpoint senza legarli a HevyBot.
+- Raggruppa gli endpoint con un tag OpenAPI dedicato (es. `Camera`, `GPIO`, `Network`, `Storage`).
+- Usa path coerenti per modulo (es. `/camera/...`, `/gpio/...`, `/network/...`).
+- Mantieni documentazione Swagger aggiornata con summary e descrizioni chiare.
 
 ## Avvio locale
 
