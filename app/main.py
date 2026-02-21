@@ -10,7 +10,7 @@ from typing import List, Optional, Tuple
 import psutil
 from fastapi import FastAPI, HTTPException
 from fastapi.openapi.docs import get_swagger_ui_html
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -203,11 +203,16 @@ def _get_cpu_temperature_celsius() -> Tuple[Optional[float], Optional[str]]:
 
 @app.get("/docs", include_in_schema=False)
 def custom_swagger_docs():
-    return get_swagger_ui_html(
+    swagger_ui_html = get_swagger_ui_html(
         openapi_url=app.openapi_url,
         title=f"{app.title} - Docs",
-        swagger_css_url="/static/swagger-theme.css",
     )
+    html_content = swagger_ui_html.body.decode("utf-8")
+    html_content = html_content.replace(
+        "</head>",
+        '  <link rel="stylesheet" type="text/css" href="/static/swagger-theme.css">\n</head>',
+    )
+    return HTMLResponse(content=html_content, status_code=200)
 
 
 @app.get(

@@ -1,47 +1,53 @@
 :root {
-  --bg-main: #171a1f;
-  --bg-panel: #1f242b;
-  --bg-elev: #262d36;
-  --text-main: #e7edf4;
-  --text-dim: #a6b2c1;
-  --border: #384351;
-  --accent-blue: #45a2ff;
-  --accent-green: #49cc90;
+  --bg-main: #14181e;
+  --bg-surface: #1b2129;
+  --bg-surface-2: #222a34;
+  --border: #344150;
+  --text-main: #ecf2f8;
+  --text-muted: #9eb0c3;
+  --accent-blue: #49a8ff;
+  --accent-green: #52d39a;
 }
 
 html,
 body {
-  background: var(--bg-main) !important;
+  background: radial-gradient(circle at top left, #1b2430 0%, var(--bg-main) 45%) !important;
   color: var(--text-main) !important;
 }
 
 .swagger-ui {
   color: var(--text-main);
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
 }
 
 .swagger-ui .topbar {
-  background: linear-gradient(90deg, #101318 0%, #171a1f 100%) !important;
+  background: linear-gradient(90deg, #0f1318 0%, #1a2028 100%) !important;
   border-bottom: 1px solid var(--border);
 }
 
-.swagger-ui .topbar .download-url-wrapper .select-label,
-.swagger-ui .topbar input[type=text] {
+.swagger-ui .topbar .download-url-wrapper input[type=text],
+.swagger-ui .topbar .download-url-wrapper .select-label {
   color: var(--text-main) !important;
 }
 
 .swagger-ui .info .title,
-.swagger-ui .info p,
-.swagger-ui .info li,
 .swagger-ui h1,
 .swagger-ui h2,
 .swagger-ui h3,
 .swagger-ui h4,
-.swagger-ui label,
 .swagger-ui .opblock-tag,
 .swagger-ui .response-col_status,
-.swagger-ui .response-col_description,
-.swagger-ui .tab li button.tablinks {
+.swagger-ui .response-col_description {
   color: var(--text-main) !important;
+}
+
+.swagger-ui .info p,
+.swagger-ui .info li,
+.swagger-ui .markdown p,
+.swagger-ui .markdown li,
+.swagger-ui .responses-table td,
+.swagger-ui .model {
+  color: var(--text-muted) !important;
 }
 
 .swagger-ui .info a,
@@ -50,17 +56,18 @@ body {
   color: var(--accent-blue) !important;
 }
 
-.swagger-ui .scheme-container,
-.swagger-ui .opblock,
-.swagger-ui .responses-inner h4,
-.swagger-ui .responses-inner h5,
-.swagger-ui table thead tr td,
-.swagger-ui table thead tr th,
-.swagger-ui .model-box,
-.swagger-ui section.models {
-  background: var(--bg-panel) !important;
-  border-color: var(--border) !important;
-  color: var(--text-main) !important;
+.swagger-ui .scheme-container {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+}
+
+.swagger-ui .opblock {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 10px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+  margin: 0 0 14px;
 }
 
 .swagger-ui .opblock .opblock-summary {
@@ -68,56 +75,61 @@ body {
 }
 
 .swagger-ui .opblock.opblock-get {
-  background: rgba(73, 204, 144, 0.1) !important;
-  border-color: rgba(73, 204, 144, 0.55) !important;
+  border-left: 5px solid var(--accent-green) !important;
+}
+
+.swagger-ui .opblock.opblock-post {
+  border-left: 5px solid var(--accent-blue) !important;
+}
+
+.swagger-ui .opblock.opblock-put,
+.swagger-ui .opblock.opblock-patch {
+  border-left: 5px solid #f6c146 !important;
+}
+
+.swagger-ui .opblock.opblock-delete {
+  border-left: 5px solid #ff6e6e !important;
 }
 
 .swagger-ui .opblock.opblock-get .opblock-summary-method {
   background: var(--accent-green) !important;
-}
-
-.swagger-ui .opblock.opblock-post {
-  background: rgba(69, 162, 255, 0.1) !important;
-  border-color: rgba(69, 162, 255, 0.55) !important;
+  color: #0e1f18 !important;
 }
 
 .swagger-ui .opblock.opblock-post .opblock-summary-method {
   background: var(--accent-blue) !important;
+  color: #0f1d2b !important;
 }
 
 .swagger-ui .btn.execute {
   background: var(--accent-blue) !important;
   border-color: var(--accent-blue) !important;
-  color: #08111a !important;
+  color: #0d1824 !important;
 }
 
 .swagger-ui .btn,
 .swagger-ui .try-out__btn,
-.swagger-ui .opblock-control-arrow,
 .swagger-ui select,
 .swagger-ui input[type=text],
 .swagger-ui textarea {
-  background: var(--bg-elev) !important;
+  background: var(--bg-surface-2) !important;
   border-color: var(--border) !important;
   color: var(--text-main) !important;
 }
 
-.swagger-ui .parameter__name,
-.swagger-ui .parameter__type,
-.swagger-ui .parameter__deprecated,
-.swagger-ui .model-title,
-.swagger-ui .prop-type {
+.swagger-ui table thead tr td,
+.swagger-ui table thead tr th,
+.swagger-ui .responses-inner h4,
+.swagger-ui .responses-inner h5,
+.swagger-ui .model-box,
+.swagger-ui section.models {
+  background: var(--bg-surface) !important;
+  border-color: var(--border) !important;
   color: var(--text-main) !important;
 }
 
-.swagger-ui .markdown p,
-.swagger-ui .markdown li,
-.swagger-ui .renderedMarkdown p,
-.swagger-ui .renderedMarkdown li,
-.swagger-ui .responses-table td,
-.swagger-ui .response .response-col_links,
-.swagger-ui .model {
-  color: var(--text-dim) !important;
+.swagger-ui section.models {
+  border-radius: 10px;
 }
 
 .swagger-ui section.models h4,
