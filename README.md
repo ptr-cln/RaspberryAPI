@@ -86,3 +86,4 @@ curl -X POST http://127.0.0.1:8000/hevybot/start \
 - Supportato anche il formato legacy `{"args":["--flag","value"]}`.
 - Risposta per entrambi: `exit_code`, `success`, `stdout`, `stderr`, `combined_output`, `command`.
 - Se uno script resta bloccato, l'API interrompe l'attesa dopo `SCRIPT_TIMEOUT_SECONDS` (default `25`) e ritorna `timed_out: true` con output parziale.
+- La risposta include `debug` con probe shell (`shell_probe_*`), utente effettivo (`effective_uid/gid`), path script e PATH ambiente per troubleshooting.

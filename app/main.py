@@ -203,6 +203,10 @@ class ScriptExecutionResponse(BaseModel):
         ...,
         description="Output complessivo (stdout + stderr).",
     )
+    debug: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Informazioni diagnostiche sull'ambiente di esecuzione.",
+    )
 
 
 def _read_runtime_file(path: Path) -> str:
@@ -318,10 +322,39 @@ def _run_script(script_path: Path, args: Optional[List[str]] = None) -> ScriptEx
             detail=f"Il path non punta a uno script file: {script_path}",
         )
 
+    try:
+        shell_probe = subprocess.run(
+            [SCRIPT_RUNNER_PATH, "-lc", "echo __SHELL_OK__"],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=5,
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        raise HTTPException(
+            status_code=500,
+            detail=f"Impossibile eseguire shell probe con {SCRIPT_RUNNER_PATH}: {exc}",
+        ) from exc
+
     script_and_args = [str(script_path), *(args or [])]
     shell_command = " ".join(shlex.quote(part) for part in script_and_args)
     shell_command = f"cd {shlex.quote(str(script_path.parent))} && {shell_command}"
     command = [SCRIPT_RUNNER_PATH, "-lc", shell_command]
+    debug_info: Dict[str, Any] = {
+        "runner": SCRIPT_RUNNER_PATH,
+        "shell_probe_exit_code": shell_probe.returncode,
+        "shell_probe_stdout": (shell_probe.stdout or "").strip(),
+        "shell_probe_stderr": (shell_probe.stderr or "").strip(),
+        "script_path": str(script_path),
+        "script_exists": script_path.exists(),
+        "script_is_file": script_path.is_file(),
+        "script_is_executable": os.access(script_path, os.X_OK),
+        "working_dir": str(script_path.parent),
+        "api_process_cwd": os.getcwd(),
+        "effective_uid": os.geteuid() if hasattr(os, "geteuid") else None,
+        "effective_gid": os.getegid() if hasattr(os, "getegid") else None,
+        "path_env": os.getenv("PATH", ""),
+    }
 
     try:
         result = subprocess.run(
@@ -351,6 +384,7 @@ def _run_script(script_path: Path, args: Optional[List[str]] = None) -> ScriptEx
             stdout=stdout,
             stderr=stderr,
             combined_output=f"{stdout}{stderr}",
+            debug=debug_info,
         )
     except PermissionError as exc:
         raise HTTPException(
@@ -374,6 +408,7 @@ def _run_script(script_path: Path, args: Optional[List[str]] = None) -> ScriptEx
         stdout=stdout,
         stderr=stderr,
         combined_output=f"{stdout}{stderr}",
+        debug=debug_info,
     )
 
 
