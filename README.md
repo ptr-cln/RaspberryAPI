@@ -85,3 +85,4 @@ curl -X POST http://127.0.0.1:8000/hevybot/start \
 - In Swagger (`/docs`) trovi template tipizzato con campi noti: `fast-mode`, `execution-time-minutes`, `pause-time-minutes`, `min-delay`, `max-delay`, `max-likes`, `long-pause-every-min-likes`, `long-pause-every-max-likes`, `long-pause-min-seconds`, `long-pause-max-seconds`, `args`.
 - Supportato anche il formato legacy `{"args":["--flag","value"]}`.
 - Risposta per entrambi: `exit_code`, `success`, `stdout`, `stderr`, `combined_output`, `command`.
+- Se uno script resta bloccato, l'API interrompe l'attesa dopo `SCRIPT_TIMEOUT_SECONDS` (default `25`) e ritorna `timed_out: true` con output parziale.

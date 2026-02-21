@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import platform
 import re
+import shlex
 import socket
 import subprocess
 from typing import Any, Dict, List, Optional, Tuple
@@ -21,6 +22,7 @@ STOP_HEVYBOT_SCRIPT_PATH = Path(
     os.getenv("HEVYBOT_STOP_SCRIPT_PATH", "/home/pi/HevyBot/stop_hevybot.sh")
 )
 SCRIPT_RUNNER_PATH = os.getenv("SCRIPT_RUNNER_PATH", "/bin/bash")
+SCRIPT_TIMEOUT_SECONDS = float(os.getenv("SCRIPT_TIMEOUT_SECONDS", "25"))
 
 app = FastAPI(
     title="RaspberryPi API",
@@ -191,6 +193,10 @@ class ScriptExecutionResponse(BaseModel):
     command: List[str] = Field(..., description="Comando eseguito.")
     exit_code: int = Field(..., description="Codice di uscita del processo.")
     success: bool = Field(..., description="True se exit code e' 0.")
+    timed_out: bool = Field(
+        default=False,
+        description="True se il processo e' stato interrotto per timeout.",
+    )
     stdout: str = Field(..., description="Output standard del comando.")
     stderr: str = Field(..., description="Output di errore del comando.")
     combined_output: str = Field(
@@ -312,7 +318,10 @@ def _run_script(script_path: Path, args: Optional[List[str]] = None) -> ScriptEx
             detail=f"Il path non punta a uno script file: {script_path}",
         )
 
-    command = [SCRIPT_RUNNER_PATH, str(script_path), *(args or [])]
+    script_and_args = [str(script_path), *(args or [])]
+    shell_command = " ".join(shlex.quote(part) for part in script_and_args)
+    shell_command = f"cd {shlex.quote(str(script_path.parent))} && {shell_command}"
+    command = [SCRIPT_RUNNER_PATH, "-lc", shell_command]
 
     try:
         result = subprocess.run(
@@ -320,7 +329,28 @@ def _run_script(script_path: Path, args: Optional[List[str]] = None) -> ScriptEx
             capture_output=True,
             text=True,
             check=False,
-            cwd=str(script_path.parent),
+            timeout=SCRIPT_TIMEOUT_SECONDS,
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Shell runner non trovato: {SCRIPT_RUNNER_PATH}",
+        ) from exc
+    except subprocess.TimeoutExpired as exc:
+        stdout = exc.stdout or ""
+        stderr = exc.stderr or ""
+        timeout_message = (
+            f"Processo terminato per timeout dopo {SCRIPT_TIMEOUT_SECONDS} secondi."
+        )
+        stderr = f"{stderr}\n{timeout_message}".strip()
+        return ScriptExecutionResponse(
+            command=command,
+            exit_code=-1,
+            success=False,
+            timed_out=True,
+            stdout=stdout,
+            stderr=stderr,
+            combined_output=f"{stdout}{stderr}",
         )
     except PermissionError as exc:
         raise HTTPException(
@@ -340,6 +370,7 @@ def _run_script(script_path: Path, args: Optional[List[str]] = None) -> ScriptEx
         command=command,
         exit_code=result.returncode,
         success=result.returncode == 0,
+        timed_out=False,
         stdout=stdout,
         stderr=stderr,
         combined_output=f"{stdout}{stderr}",
