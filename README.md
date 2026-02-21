@@ -19,7 +19,7 @@ Il progetto e' generico: puo' contenere endpoint di servizi diversi.
 
 Swagger UI:
 
-- `http://<IP_RASPBERRY>:8000/docs` (tema scuro custom)
+- `http://<IP_RASPBERRY>:8000/docs`
 
 OpenAPI JSON:
 
