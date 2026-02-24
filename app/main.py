@@ -14,6 +14,7 @@ from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 LIKES_COUNT_PATH = Path("/home/pi/HevyBot/runtime/likes_count.txt")
+LIKED_POSTS_PATH = Path("/home/pi/HevyBot/runtime/liked_posts.txt")
 HEVYBOT_OUT_PATH = Path("/home/pi/HevyBot/runtime/hevybot.out")
 START_HEVYBOT_SCRIPT_PATH = Path(
     os.getenv("HEVYBOT_START_SCRIPT_PATH", "/home/pi/HevyBot/start_hevybot.sh")
@@ -477,6 +478,16 @@ def _start_request_to_payload_dict(payload: Optional[StartHevyBotRequest]) -> Di
 )
 def get_likes_count() -> str:
     return _read_runtime_file(LIKES_COUNT_PATH)
+
+
+@app.get(
+    "/runtime/liked-posts",
+    response_class=PlainTextResponse,
+    tags=["HevyBot"],
+    summary="Legge liked_posts.txt",
+)
+def get_liked_posts() -> str:
+    return _read_runtime_file(LIKED_POSTS_PATH)
 
 
 @app.get(
