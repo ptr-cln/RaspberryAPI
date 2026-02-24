@@ -143,6 +143,11 @@ class StartHevyBotRequest(BaseModel):
         ge=1,
         description="Numero massimo like (es. --max-likes 20000).",
     )
+    graph_root_username: Optional[str] = Field(
+        default="",
+        alias="graph-root-username",
+        description="Username root per il graph (es. --graph-root-username user).",
+    )
     long_pause_every_min_likes: Optional[int] = Field(
         default=None,
         alias="long-pause-every-min-likes",
@@ -183,6 +188,7 @@ class StartHevyBotRequest(BaseModel):
                 "min-delay": 1,
                 "max-delay": 3,
                 "max-likes": 20000,
+                "graph-root-username": "",
                 "long-pause-every-min-likes": 8,
                 "long-pause-every-max-likes": 14,
                 "long-pause-min-seconds": 30,
