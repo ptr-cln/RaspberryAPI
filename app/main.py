@@ -15,6 +15,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 LIKES_COUNT_PATH = Path("/home/pi/HevyBot/runtime/likes_count.txt")
 LIKED_POSTS_PATH = Path("/home/pi/HevyBot/runtime/liked_posts.txt")
+INACTIVE_USERS_CACHE_PATH = Path("/home/pi/HevyBot/runtime/inactive_users_cache.json")
+HEVYBOT_PID_PATH = Path("/home/pi/HevyBot/runtime/hevybot.pid")
 HEVYBOT_OUT_PATH = Path("/home/pi/HevyBot/runtime/hevybot.out")
 START_HEVYBOT_SCRIPT_PATH = Path(
     os.getenv("HEVYBOT_START_SCRIPT_PATH", "/home/pi/HevyBot/start_hevybot.sh")
@@ -488,6 +490,26 @@ def get_likes_count() -> str:
 )
 def get_liked_posts() -> str:
     return _read_runtime_file(LIKED_POSTS_PATH)
+
+
+@app.get(
+    "/runtime/inactive-users-cache",
+    response_class=PlainTextResponse,
+    tags=["HevyBot"],
+    summary="Legge inactive_users_cache.json",
+)
+def get_inactive_users_cache() -> str:
+    return _read_runtime_file(INACTIVE_USERS_CACHE_PATH)
+
+
+@app.get(
+    "/runtime/hevybot-pid",
+    response_class=PlainTextResponse,
+    tags=["HevyBot"],
+    summary="Legge hevybot.pid",
+)
+def get_hevybot_pid() -> str:
+    return _read_runtime_file(HEVYBOT_PID_PATH)
 
 
 @app.get(
